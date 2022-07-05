@@ -1,10 +1,52 @@
-// this constant won't change:
+#include <WiFi.h>
+#include <AsyncTCP.h>
+#include <ESPAsyncWebServer.h>
+
+// Web server 
+const char* ssid = "buzzers";
+const char* password = "buzzers";
+
+const char index_html[] PROGMEM = R"rawliteral(
+<!DOCTYPE HTML><html>
+<head>
+  <title>ESP Web Server</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="data:,">
+  <style>
+    html {font-family: Arial; display: inline-block; text-align: center;}
+    h2 {font-size: 3.0rem;}
+    p {font-size: 3.0rem;}
+    body {max-width: 600px; margin:0px auto; padding-bottom: 25px;}
+    .switch {position: relative; display: inline-block; width: 120px; height: 68px} 
+    .switch input {display: none}
+    .slider {position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; border-radius: 6px}
+    .slider:before {position: absolute; content: ""; height: 52px; width: 52px; left: 8px; bottom: 8px; background-color: #fff; -webkit-transition: .4s; transition: .4s; border-radius: 3px}
+    input:checked+.slider {background-color: #b30000}
+    input:checked+.slider:before {-webkit-transform: translateX(52px); -ms-transform: translateX(52px); transform: translateX(52px)}
+  </style>
+</head>
+<body>
+  <h2>ESP Web Server</h2>
+  %BUTTONPLACEHOLDER%
+<script>function toggleCheckbox(element) {
+  var xhr = new XMLHttpRequest();
+  if(element.checked){ xhr.open("GET", "/update?output="+element.id+"&state=1", true); }
+  else { xhr.open("GET", "/update?output="+element.id+"&state=0", true); }
+  xhr.send();
+}
+</script>
+</body>
+</html>
+)rawliteral";
+
+
+
+// IO
 const int  buttonPin = 4;    // the pin that the pushbutton is attached to
 const int ledPin = 5;       // the pin that the LED is attached to
-
 const int BUTTON_PRESSED = HIGH;
 
-// Variables will change:
+// State
 int buttonPushCounter = 0;
 int buttonState = 0;     
 int lastButtonState = 0;
@@ -33,14 +75,8 @@ void addPress(unsigned int deviceId) {
 }
 
 
-void printPress(Press press) {
-  Serial.print(press.deviceId);
-  int seconds = press.millisecondsSinceBoot / 1000; 
-  int deci = (press.millisecondsSinceBoot % 1000) / 10;
-  Serial.print(":");
-  Serial.print(seconds);
-  Serial.print(".");
-  Serial.print(deci);
+String pressToJson(Press press) {
+  return "{\"deviceId\": " + String(press.deviceId) + ", \"ms\": " + String(press.millisecondsSinceBoot) + "}";
 }
 
 void printPresses() {
@@ -49,14 +85,14 @@ void printPresses() {
   
 
   for(int i=nextPressesIndex-1; i>=0; i--) {
-    printPress(presses[i]);
+    Serial.print(pressToJson(presses[i]));
     Serial.print(", ");
   }
 
   if(full) { // full
      for(int i=capacity-1; i>=nextPressesIndex; i--) {
-        printPress(presses[i]);
-      Serial.print(", ");
+        Serial.print(pressToJson(presses[i]));
+        Serial.print(", ");
      }
   }
 
@@ -90,7 +126,6 @@ void loop() {
     
     } else {
       // if the current state is LOW then the button went from on to off:
-      Serial.println("off");
     }
 
     delay(50); // Delay a little bit to avoid bouncing
