@@ -4,7 +4,8 @@
 
 // Web server 
 const char* ssid = "buzzers";
-const char* password = "buzzers";
+const char* password = "buzzerspw";
+AsyncWebServer server(80);
 
 const char index_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE HTML><html>
@@ -39,6 +40,11 @@ const char index_html[] PROGMEM = R"rawliteral(
 </html>
 )rawliteral";
 
+
+
+
+// https://randomnerdtutorials.com/esp32-async-web-server-espasyncwebserver-library/
+// https://randomnerdtutorials.com/esp32-access-point-ap-web-server/#:~:text=ESP32%20IP%20Address,ESP32%20point%20will%20be%20printed.
 
 
 // IO
@@ -100,10 +106,37 @@ void printPresses() {
   Serial.println();
 }
 
+
+String processor(const String& var) {
+  //Serial.println(var);
+  if(var == "BUTTONPLACEHOLDER"){
+    String buttons = "";
+    buttons += "<h4>Output - GPIO 2</h4><label class=\"switch\"><input type=\"checkbox\" onchange=\"toggleCheckbox(this)\" id=\"2\"><span class=\"slider\"></span></label>";
+    buttons += "<h4>Output - GPIO 4</h4><label class=\"switch\"><input type=\"checkbox\" onchange=\"toggleCheckbox(this)\" id=\"4\"><span class=\"slider\"></span></label>";
+    buttons += "<h4>Output - GPIO 33</h4><label class=\"switch\"><input type=\"checkbox\" onchange=\"toggleCheckbox(this)\" id=\"33\"><span class=\"slider\"></span></label>";
+    return buttons;
+  }
+  return String();
+}
+
 void setup() {
   pinMode(buttonPin, INPUT);
   pinMode(ledPin, OUTPUT);
   Serial.begin(9600);
+
+  WiFi.softAP(ssid, password);
+  IPAddress IP = WiFi.softAPIP();
+  Serial.print("AP IP address: ");
+  Serial.println(IP);
+
+  // Route for root / web page
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+    Serial.println("incoming connection");
+    request->send_P(200, "text/html", index_html, processor);
+  });
+
+  server.begin();
+
 }
 
 
