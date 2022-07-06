@@ -113,6 +113,24 @@ String processor(const String& var) {
   return String();
 }
 
+String getParam(AsyncWebServerRequest *request, String name, String orElse) {
+  for(int i=0;i<request->params();i++){
+     AsyncWebParameter* p = request->getParam(i);
+     if(p->name() == name) {
+      return p->value();
+     }
+  }
+  return orElse;
+}
+
+int strToMaxlength(String encoded) {
+  int res = encoded.toInt();
+  if(res <= 0) {
+    res = capacity;
+  }
+  return res;
+}
+
 void setup() {
   pinMode(buttonPin, INPUT);
   pinMode(ledPin, OUTPUT);
@@ -126,8 +144,7 @@ void setup() {
   // Route for root / web page
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
 
-    Serial.println("incoming connection");
-    request->send(200, "text/csv", presssesToCsv(capacity));
+    request->send(200, "text/csv", presssesToCsv(strToMaxlength(getParam(request, "n", "not found"))));
   });
 
   server.begin();

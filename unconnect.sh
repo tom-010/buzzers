@@ -1,1 +1,1 @@
-wifi "FRITZ\!Box 7490" 
+wifi "FRITZ!Box 7490" 
