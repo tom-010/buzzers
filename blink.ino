@@ -81,29 +81,23 @@ void addPress(unsigned int deviceId) {
 }
 
 
-String pressToJson(Press press) {
-  return "{\"deviceId\": " + String(press.deviceId) + ", \"ms\": " + String(press.millisecondsSinceBoot) + "}";
+String pressToCsvLine(Press press) {
+  return String(press.deviceId) + "," + String(press.millisecondsSinceBoot);
 }
 
-void printPresses() {
-  Serial.print("[");
+String presssesToCsv(int maxlines) {
+  String res = "";
 
-  
-
-  for(int i=nextPressesIndex-1; i>=0; i--) {
-    Serial.print(pressToJson(presses[i]));
-    Serial.print(", ");
+  for(int i=nextPressesIndex-1; i>=0 && maxlines>0; i--, maxlines--) {
+    res += pressToCsvLine(presses[i]) + "\n";
   }
 
   if(full) { // full
-     for(int i=capacity-1; i>=nextPressesIndex; i--) {
-        Serial.print(pressToJson(presses[i]));
-        Serial.print(", ");
+     for(int i=capacity-1; i>=nextPressesIndex && maxlines>0; i--, maxlines--) {
+        res += pressToCsvLine(presses[i]) + "\n";
      }
   }
-
-  Serial.print("]");
-  Serial.println();
+  return res;
 }
 
 
@@ -131,8 +125,9 @@ void setup() {
 
   // Route for root / web page
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+
     Serial.println("incoming connection");
-    request->send_P(200, "text/html", index_html, processor);
+    request->send(200, "text/csv", presssesToCsv(capacity));
   });
 
   server.begin();
@@ -152,7 +147,7 @@ void loop() {
       buttonPushCounter++;
       int milliSecondsSinceBoot = esp_timer_get_time()/1000;
       addPress(0);
-      printPresses();
+      Serial.println(presssesToCsv(3));
       
       // Serial.print("number of button pushes: ");
       // Serial.println(buttonPushCounter);
